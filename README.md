@@ -2,18 +2,18 @@
 An open source arduino-controlled habitat controller capable of reading temperature, 
 humidity and uv-intensity from 3 zones, controlling lighting, heating and rain systems with 4 relays.
 
-Arduino-folder: arduino project and vscode-config. This is where the actual habitatcontrol is.
-Nextion-folder User interface project
-Eagle-folder (coming): Will contain schematics and board designs.
+* Arduino-folder: arduino project and vscode-config. This is where the actual habitatcontrol is.
+* Nextion-folder User interface project
+* Eagle-folder (coming): Will contain schematics and board designs.
 
 [You can order finished pcb's from dirtypcb's here](http://dirtypcbs.com/store/designer/details/skasti/5841/arduino-habitat-control-v1-0)
 
 Board is to be used to control lighting/heating/rain-system for reptile habitat, 
 but can be used to control anything you can control with relays.
 
-3x Sense-ports (5v, gnd,digital, analog) for inputs
-4x Relay outputs with NO* and NC* option
-1x Serial-port for connecting to other device (I plan on connecting a Nextion Enhanced display)
+* 3x Sense-ports (5v, gnd,digital, analog) for inputs
+* 4x Relay outputs with NO* and NC* option
+* 1x Serial-port for connecting to other device (I plan on connecting a Nextion Enhanced display)
 
 Can use separate power supply for relays (shared ground).
 
