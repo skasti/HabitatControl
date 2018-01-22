@@ -1,5 +1,7 @@
 #include "DHT.h"
 #include "utils.h"
+#include "zone.h"
+#include "nextionDisplay.h"
 
 DHT dhts[3];
 
@@ -20,15 +22,24 @@ int relayState[] = {
   LOW, LOW, LOW, LOW
 };
 
-long sampleTime = 0;
-long resetTime = 0;
-float uvSeconds[] = {
-  0.0, 0.0, 0.0
-};
-
 byte eol[] = {
   0xFF, 0xFF, 0xFF
 };
+
+long sampleTime = 10000;
+long prevTime = 0;
+
+Zone zone1(0,0);
+Zone zone2(150,1);
+Zone zone3(300,2);
+
+Zone zone[3] = {
+  zone1,
+  zone2,
+  zone3
+};
+
+NextionDisplay display;
 
 void submit() {
   Serial.write(eol, 3);
@@ -86,22 +97,16 @@ void sendRelayState(int index) {
 }
 
 void setup() {
-  Serial.begin(9600);
+  display.setup();
 
   pinMode(A0, INPUT);
   
   for (int i = 0; i < 3; i++) {
-    pinMode(uvs[i], INPUT);
-    //digitalWrite(uvs[i], HIGH);
+    if (!zone[i].loadFromEEPROM()) {
+      zone[i].setup(10+i, uvs[i], i,-1);
+    }
 
-    // if (analogRead(uvs[i]) >= 1000)
-    //   uvEnabled[i] = false;
-    // else
-    //   digitalWrite(uvs[i], LOW);
-  }
 
-  for (int i = 0; i < 3; i++) {
-    dhts[i].setup(10 + i);
   }
 
   for (int i = 0; i < numRelays; i++) {
@@ -128,42 +133,19 @@ void loop() {
   if (time < sampleTime)
     return;
 
-  sampleTime = time + 1000;
+  sampleTime = time + 5000;
 
-  if (time > resetTime) {
-    resetTime = millis() + 120000;
-
-    uvSeconds[0] = 0;
-    uvSeconds[1] = 0;
-    uvSeconds[2] = 0;
-  }
+  int deltaTime = time - prevTime;
+  prevTime = time;
 
   int refLevel = averageAnalogRead(A0);
 
-  for (int i = 0; i < 3; i++) {
-    float humidity = dhts[i].getHumidity();
-    float temperature = dhts[i].getTemperature();
-
-    if (uvEnabled[i]) {
-      //Use the 5V power pin as a reference to get a very accurate output value from sensor
-      int uvLevel = averageAnalogRead(uvs[i]);
-      float outputVoltage = (5.0 / refLevel) * uvLevel;
-      float uvIntensity = mapfloat(outputVoltage, 0.99, 2.8, 0.0, 15.0); //Convert the voltage to a UV intensity level
-
-      if ((uvIntensity < 15) && (uvIntensity >= 1))
-        uvSeconds[i] += uvIntensity;
-
-      sendUVI(i, (int)(uvIntensity));
-    }
-
-    sendUVs(i, uvSeconds[i]);
-    sendTemp(i, (int)(temperature));
-    sendHumidity(i, (int)(humidity));    
-
-    if (uvSeconds[i] > 30.0 && relayState[i] == HIGH) {
-      setRelay(i, LOW);
-    } else if (uvSeconds[i] <= 30.0 && relayState[i] == LOW) {
-      setRelay(i, HIGH);
-    }
+  for (int i = 0; i < 2; i++) {
+    zone[i].update(0,0, deltaTime, refLevel);
+    //zone[i].updateDisplayOverview();
+    sendUVI(i, zone[i].getUVI());    
+    sendUVs(i, zone[i].getUVIS());
+    sendTemp(i, zone[i].getTemp());
+    sendHumidity(i, zone[i].getHumidity());
   }
 }

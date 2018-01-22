@@ -9,7 +9,7 @@
 
 //Takes an average of readings on a given pin
 //Returns the average
-int averageAnalogRead(int pinToRead)
+static int averageAnalogRead(int pinToRead)
 {
   byte numberOfReadings = 8;
   unsigned int runningValue = 0; 
@@ -23,18 +23,23 @@ int averageAnalogRead(int pinToRead)
 
 //The Arduino Map function but for floats
 //From: http://forum.arduino.cc/index.php?topic=3922.0
-float mapfloat(float x, float in_min, float in_max, float out_min, float out_max)
+static float mapfloat(float x, float in_min, float in_max, float out_min, float out_max)
 {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-float readUVI(int pin, int refLevel)
+static float readUVI(int pin, int refLevel)
 {
-    int uvLevel = averageAnalogRead(uvs[i]);
+    int uvLevel = averageAnalogRead(pin);
     float outputVoltage = (5.0 / refLevel) * uvLevel;
     float uvIntensity = mapfloat(outputVoltage, 0.99, 2.8, 0.0, 15.0); //Convert the voltage to a UV intensity level
 
     return uvIntensity;
 }
+
+union ArrayToInteger {
+  byte array[4];
+  int32_t integer;
+};
 
 #endif

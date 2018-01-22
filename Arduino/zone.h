@@ -2,6 +2,7 @@
 #define ZONE_H
 
 #include "DHT.h"
+#include "nextionDisplay.h"
 #include <inttypes.h>
 
 struct ZoneHistory {
@@ -17,25 +18,33 @@ struct ZoneHistory {
 
 struct ZoneConfig {
     int dhtPin, uvPin;
-    uint8_t heaterRelay = 0;
-    uint8_t rainRelay = 0;
-    uint8_t tempTarget = 25;
+    int8_t heaterRelay = 0;
+    int8_t rainRelay = 0;
+    uint8_t tempTargets[24] = {
+        20,20,20,20,20,20,
+        20,20,20,20,20,20,
+        20,20,20,20,20,20,
+        20,20,20,20,20,20
+    };
     uint8_t humidityTarget = 35;
 };
 
 class Zone {
-    uint8_t temp;
-    uint8_t humidity;
+    uint8_t temp = 0;
+    uint8_t humidity = 0;
     
-    uint8_t uvi;
+    uint8_t uvi = 0;
     uint16_t uvis = 0;    
+    bool uvEnabled = false;
 
-    ZoneHistory history;    
+    ZoneHistory history;
     ZoneConfig config;
 
     DHT dht;
 
     int eepromLocation;
+    int zoneIndex;
+    NextionDisplay* display;
 
     private:
         int getConfigStartLocation();
@@ -43,13 +52,14 @@ class Zone {
         int getTempHistoryLocation(int hour);
         int getHumidityHistoryLocation(int hour);
         int getUVISHistoryLocation(int hour);
+        void init();
 
     public:
-        Zone(int eepromLocation);
+        Zone(int eepromLocation, int zoneIndex);
         
-        void setup (int newDHTPin, int newUVPin, uint8_t newHeaterRelay, uint8_t newRainRelay);
+        void setup (int newDHTPin, int newUVPin, int8_t newHeaterRelay, int8_t newRainRelay);
 
-        void configureTargets(uint8_t newTempTarget, uint8_t newHumidityTarget);
+        void configureTargets(uint8_t newTempTargets[], uint8_t newHumidityTarget);
 
         bool loadFromEEPROM();
         void saveToEEPROM();
@@ -57,6 +67,13 @@ class Zone {
         void update(int hour, int minute, int deltams, int refLevel);
 
         ZoneHistory getHistory();
+        int getTemp();
+        int getHumidity();
+        int getUVI();
+        int getUVIS();
+
+        void setDisplay(NextionDisplay* newDisplay);
+        void updateDisplayOverview();
 };
 
 #endif
