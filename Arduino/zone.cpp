@@ -171,8 +171,8 @@ void Zone::setDisplay(NextionDisplay* newDisplay)
 
 void Zone::updateDisplayOverview()
 {
-    display->sendIndexValue("s%dTemp", zoneIndex, temp);
-    display->sendIndexValue("s%dHumidity", zoneIndex, humidity);
-    display->sendIndexValue("s%dUV", zoneIndex, uvi);
-    display->sendIndexValue("s%dUVs", zoneIndex, uvis);
+    display->sendIndexValue('s',"Temp", zoneIndex, temp);
+    display->sendIndexValue('s',"Humidity", zoneIndex, humidity);
+    display->sendIndexValue('s',"UV", zoneIndex, uvi);
+    display->sendIndexValue('s',"UVs", zoneIndex, uvi);
 }

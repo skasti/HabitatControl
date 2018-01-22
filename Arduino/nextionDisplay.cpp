@@ -43,20 +43,24 @@ void NextionDisplay::sendValue(char componentName[], int value)
     sendEOL();
 }
 
-void NextionDisplay::sendIndexValue(char componentName[], int index, char value[])
+void NextionDisplay::sendIndexValue(char prefix, char componentName[], int index, char value[])
 {
-    char buf[sizeof(componentName)];
-    sprintf(buf, componentName, index);
-
-    sendValue(buf, value);
+    Nextion.print(prefix);
+    Nextion.print(index);
+    Nextion.print(componentName);
+    Nextion.print(".txt=");
+    Nextion.print(value);
+    sendEOL();
 }
 
-void NextionDisplay::sendIndexValue(char componentName[], int index, int value)
+void NextionDisplay::sendIndexValue(char prefix, char componentName[], int index, int value)
 {
-    char buf[sizeof(componentName)+1];
-    sprintf(buf, componentName, index);
-
-    sendValue(buf, value);
+    Nextion.print(prefix);
+    Nextion.print(index);
+    Nextion.print(componentName);
+    Nextion.print(".val=");
+    Nextion.print(value);
+    sendEOL();
 }
 
 void NextionDisplay::debug(char text[])

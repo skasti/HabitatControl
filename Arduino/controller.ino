@@ -140,12 +140,12 @@ void loop() {
 
   int refLevel = averageAnalogRead(A0);
 
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < 3; i++) {
     zone[i].update(0,0, deltaTime, refLevel);
-    //zone[i].updateDisplayOverview();
-    sendUVI(i, zone[i].getUVI());    
-    sendUVs(i, zone[i].getUVIS());
-    sendTemp(i, zone[i].getTemp());
-    sendHumidity(i, zone[i].getHumidity());
+    zone[i].updateDisplayOverview();
+    // sendUVI(i, zone[i].getUVI());    
+    // sendUVs(i, zone[i].getUVIS());
+    // sendTemp(i, zone[i].getTemp());
+    // sendHumidity(i, zone[i].getHumidity());
   }
 }
