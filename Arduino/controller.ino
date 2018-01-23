@@ -39,62 +39,9 @@ Zone zone[3] = {
   zone3
 };
 
+bool isOverview = false;
+
 NextionDisplay display;
-
-void submit() {
-  Serial.write(eol, 3);
-}
-
-void sendValue(String objectId, int value) {
-  Serial.print(objectId);
-  Serial.print(".val=");
-  Serial.print(value);
-  submit();
-}
-
-void sendTemp(int index, int value) {
-  Serial.print("s");
-  Serial.print(index);
-  Serial.print("Temp.val=");
-  Serial.print(value);
-  submit();
-}
-
-void sendHumidity(int index, int value) {
-  Serial.print("s");
-  Serial.print(index);
-  Serial.print("Humidity.val=");
-  Serial.print(value);
-  submit();
-}
-
-void sendUVI(int index, int value) {
-  Serial.print("s");
-  Serial.print(index);
-  Serial.print("UV.val=");
-  Serial.print(value);
-  submit();
-}
-
-void sendUVs(int index, int value) {
-  Serial.print("s");
-  Serial.print(index);
-  Serial.print("UVs.val=");
-  Serial.print(value);
-  submit();
-}
-
-void sendRelayState(int index) {
-  Serial.print("r");
-  Serial.print(index);
-
-  if (relayState[index] == LOW)
-    Serial.print(".val=0");
-  else
-    Serial.print(".val=1");
-
-  submit();
-}
 
 void setup() {
   display.setup();
@@ -124,16 +71,62 @@ void setRelay(int relay, int state) {
 
   digitalWrite(relays[relay], state);
 
-  sendRelayState(relay);
+  //sendRelayState(relay);
 }
 
 void loop() {
   long time = millis();
 
+  if (display.hasCommand()) 
+  {
+    String command = display.getCommand();
+    if (command == "GetZoneTemps")
+    {
+      int zoneIndex = display.getIntValue("temps.currentZone");
+
+      if (zoneIndex >= 0)
+      {
+        isOverview = false;
+        ZoneConfig config = zone[zoneIndex].getConfig();
+
+        for (int i = 0; i < 24; i++)
+        {
+          display.sendIndexValue('h', "",i, config.tempTargets[i]);
+        }
+      }
+    }
+    else if (command == "SaveZoneTemps")
+    {
+      int zoneIndex = display.getIntValue("temps.currentZone");
+
+      if (zoneIndex >= 0)
+      {
+        ZoneConfig config = zone[zoneIndex].getConfig();
+
+        for (int i = 0; i < 24; i++)
+        {
+          int newValue = display.getIntValue('h', "",i);
+
+          if (newValue >= 0)
+            config.tempTargets[i] = newValue;
+
+        }
+
+        zone[zoneIndex].configureTargets(config.tempTargets, config.humidityTarget);
+
+        display.sendCommand("page overview");
+      }
+    }
+    else if (command == "InitOverview")
+    {
+      isOverview = true;
+    }
+  }
+
   if (time < sampleTime)
     return;
 
-  sampleTime = time + 5000;
+  sampleTime = time + 1000;
 
   int deltaTime = time - prevTime;
   prevTime = time;
@@ -142,10 +135,8 @@ void loop() {
 
   for (int i = 0; i < 3; i++) {
     zone[i].update(0,0, deltaTime, refLevel);
-    zone[i].updateDisplayOverview();
-    // sendUVI(i, zone[i].getUVI());    
-    // sendUVs(i, zone[i].getUVIS());
-    // sendTemp(i, zone[i].getTemp());
-    // sendHumidity(i, zone[i].getHumidity());
+
+    if (isOverview)
+      zone[i].updateDisplayOverview();
   }
 }

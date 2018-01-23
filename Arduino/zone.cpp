@@ -144,6 +144,11 @@ ZoneHistory Zone::getHistory()
     return history;
 }
 
+ZoneConfig Zone::getConfig() 
+{
+    return config;
+}
+
 int Zone::getTemp() 
 {
     return temp;

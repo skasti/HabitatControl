@@ -67,6 +67,8 @@ class Zone {
         void update(int hour, int minute, int deltams, int refLevel);
 
         ZoneHistory getHistory();
+        ZoneConfig getConfig();
+
         int getTemp();
         int getHumidity();
         int getUVI();

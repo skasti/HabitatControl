@@ -17,7 +17,7 @@ class NextionDisplay {
         char buffer[40];
         int bufPos = 0;
         int eolCounter = 0;
-        void extractCommand(int length);
+        void extractCommand(int endIndex);
         char componentNameBuffer[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     public:
         void setup();
@@ -29,6 +29,8 @@ class NextionDisplay {
         void sendIndexValue(char prefix, char componentName[], int index, int value);
         int getIntValue(char componentName[]);
         String getStringValue(char componentName[]);
+        int getIntValue(char prefix, char componentName[], int index);
+        String getStringValue(char prefix, char componentName[], int index);
         bool hasCommand();
         String getCommand();
         int readLine();
