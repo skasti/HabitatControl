@@ -9,6 +9,15 @@ int uvs[] = {
   A3, A2, A1
 };
 
+int heaters[] = {
+  0, -1, 1
+};
+
+
+int rain[] = {
+  -1, -1, 2
+};
+
 bool uvEnabled[] = {
   true, true, true
 };
@@ -49,9 +58,9 @@ void setup() {
   pinMode(A0, INPUT);
   
   for (int i = 0; i < 3; i++) {
-    if (!zone[i].loadFromEEPROM()) {
-      zone[i].setup(10+i, uvs[i], i,-1);
-    }
+    //if (!zone[i].loadFromEEPROM()) {
+      zone[i].setup(10+i, uvs[i], heaters[i],rain[i]);
+    //}
 
 
   }

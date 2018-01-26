@@ -115,7 +115,20 @@ void Zone::update(int hour, int minute, int deltams, int refLevel)
             history.minTemp = temp;
 
         if (history.maxTemp == 0 || temp > history.maxTemp)
-            history.maxTemp = temp;        
+            history.maxTemp = temp;
+
+        if (config.heaterRelay >= 0)
+        {
+            uint8_t tempTarget = config.tempTargets[hour];
+
+            if (temp < tempTarget - lowTempThreshold)
+            {
+                display->sendIndexValue('r',"",config.heaterRelay, 1);
+            } else if (temp > tempTarget)
+            {
+                display->sendIndexValue('r',"",config.heaterRelay, 0);
+            }
+        }
 
         humidity = dht.getHumidity();
 
@@ -125,7 +138,18 @@ void Zone::update(int hour, int minute, int deltams, int refLevel)
             history.minHumidity = humidity;
 
         if (history.maxHumidity == 0 || humidity > history.maxHumidity)
-            history.maxHumidity = humidity;       
+            history.maxHumidity = humidity;
+
+        if (config.rainRelay >= 0)
+        {
+            if (humidity < config.humidityTarget - lowHumidityThreshold)
+            {
+                display->sendIndexValue('r',"",config.rainRelay, 1);
+            } else if (humidity > config.humidityTarget)
+            {
+                display->sendIndexValue('r',"",config.rainRelay, 0);
+            }
+        }
     }
 
     if (uvEnabled && config.uvPin > 0)

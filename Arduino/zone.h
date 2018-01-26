@@ -29,6 +29,9 @@ struct ZoneConfig {
     uint8_t humidityTarget = 35;
 };
 
+const uint8_t lowTempThreshold = 2;
+const uint8_t lowHumidityThreshold = 5;
+
 class Zone {
     uint8_t temp = 0;
     uint8_t humidity = 0;
