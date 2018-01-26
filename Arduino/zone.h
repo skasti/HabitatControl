@@ -5,7 +5,8 @@
 #include "nextionDisplay.h"
 #include <inttypes.h>
 
-struct ZoneHistory {
+struct ZoneHistory
+{
     uint8_t temp[24];
     uint8_t humidity[24];
     uint8_t uvi[24];
@@ -16,29 +17,32 @@ struct ZoneHistory {
     uint8_t maxUVI = 0;
 };
 
-struct ZoneConfig {
+struct ZoneConfig
+{
     int dhtPin, uvPin;
     int8_t heaterRelay = 0;
     int8_t rainRelay = 0;
     uint8_t tempTargets[24] = {
-        20,20,20,20,20,20,
-        20,20,20,20,20,20,
-        20,20,20,20,20,20,
-        20,20,20,20,20,20
-    };
+        20, 20, 20, 20, 20, 20,
+        20, 20, 20, 20, 20, 20,
+        20, 20, 20, 20, 20, 20,
+        20, 20, 20, 20, 20, 20};
     uint8_t humidityTarget = 35;
 };
 
 const uint8_t lowTempThreshold = 2;
 const uint8_t lowHumidityThreshold = 5;
 
-class Zone {
+class Zone
+{
     uint8_t temp = 0;
     uint8_t humidity = 0;
-    
+
     uint8_t uvi = 0;
-    uint16_t uvis = 0;    
+    uint16_t uvis = 0;
     bool uvEnabled = false;
+
+    bool heating, raining;
 
     ZoneHistory history;
     ZoneConfig config;
@@ -47,38 +51,38 @@ class Zone {
 
     int eepromLocation;
     int zoneIndex;
-    NextionDisplay* display;
+    NextionDisplay *display;
 
-    private:
-        int getConfigStartLocation();
-        int getHistoryStartLocation();
-        int getTempHistoryLocation(int hour);
-        int getHumidityHistoryLocation(int hour);
-        int getUVISHistoryLocation(int hour);
-        void init();
+  private:
+    int getConfigStartLocation();
+    int getHistoryStartLocation();
+    int getTempHistoryLocation(int hour);
+    int getHumidityHistoryLocation(int hour);
+    int getUVISHistoryLocation(int hour);
+    void init();
 
-    public:
-        Zone(int eepromLocation, int zoneIndex);
-        
-        void setup (int newDHTPin, int newUVPin, int8_t newHeaterRelay, int8_t newRainRelay);
+  public:
+    Zone(int eepromLocation, int zoneIndex);
 
-        void configureTargets(uint8_t newTempTargets[], uint8_t newHumidityTarget);
+    void setup(int newDHTPin, int newUVPin, int8_t newHeaterRelay, int8_t newRainRelay);
 
-        bool loadFromEEPROM();
-        void saveToEEPROM();
+    void configureTargets(uint8_t newTempTargets[], uint8_t newHumidityTarget);
 
-        void update(int hour, int minute, int deltams, int refLevel);
+    bool loadFromEEPROM();
+    void saveToEEPROM();
 
-        ZoneHistory getHistory();
-        ZoneConfig getConfig();
+    void update(int hour, int minute, int deltams, int refLevel);
 
-        int getTemp();
-        int getHumidity();
-        int getUVI();
-        int getUVIS();
+    ZoneHistory getHistory();
+    ZoneConfig getConfig();
 
-        void setDisplay(NextionDisplay* newDisplay);
-        void updateDisplayOverview();
+    int getTemp();
+    int getHumidity();
+    int getUVI();
+    int getUVIS();
+
+    void setDisplay(NextionDisplay *newDisplay);
+    void updateDisplayOverview();
 };
 
 #endif

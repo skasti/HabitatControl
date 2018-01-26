@@ -1,6 +1,10 @@
+#define HEATER_MOCK
+#define RAIN_MOCK
+
 #include "zone.h"
 #include <EEPROM.h>
 #include "utils.h"
+#include "relays.h"
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"
@@ -39,7 +43,7 @@ int Zone::getUVISHistoryLocation(int hour)
     return getHumidityHistoryLocation(hour) + 24;
 }
 
-void Zone::setup (int newDHTPin, int newUVPin, int8_t newHeaterRelay, int8_t newRainRelay)
+void Zone::setup(int newDHTPin, int newUVPin, int8_t newHeaterRelay, int8_t newRainRelay)
 {
     config.dhtPin = newDHTPin;
     config.uvPin = newUVPin;
@@ -53,10 +57,11 @@ void Zone::setup (int newDHTPin, int newUVPin, int8_t newHeaterRelay, int8_t new
 
 void Zone::configureTargets(uint8_t newTempTargets[], uint8_t newHumidityTarget)
 {
-    for (int i = 0; i < 24; i++) {
+    for (int i = 0; i < 24; i++)
+    {
         config.tempTargets[i] = newTempTargets[i];
     }
-    
+
     config.humidityTarget = newHumidityTarget;
 
     saveToEEPROM();
@@ -79,16 +84,18 @@ bool Zone::loadFromEEPROM()
     return true;
 }
 
-void Zone::init() 
+void Zone::init()
 {
     if (config.dhtPin > 0)
         dht.setup(config.dhtPin);
 
-    if (config.uvPin > 0) {
+    if (config.uvPin > 0)
+    {
         pinMode(config.uvPin, INPUT);
         digitalWrite(config.uvPin, HIGH);
 
-        if (analogRead(config.uvPin) < 1000) {
+        if (analogRead(config.uvPin) < 1000)
+        {
             uvEnabled = true;
             digitalWrite(config.uvPin, LOW);
         }
@@ -98,16 +105,23 @@ void Zone::init()
 void Zone::saveToEEPROM()
 {
     EEPROM.put(getConfigStartLocation(), config);
-    EEPROM.put(getHistoryStartLocation(),history);
+    EEPROM.put(getHistoryStartLocation(), history);
 
-    EEPROM.update(eepromLocation,128);
+    EEPROM.update(eepromLocation, 128);
 }
 
 void Zone::update(int hour, int minute, int deltams, int refLevel)
 {
     if (config.dhtPin > 0)
     {
+#ifndef HEATER_MOCK
         temp = dht.getTemperature();
+#else
+        if (heating)
+            temp += 1;
+        else if (temp > 15)
+            temp -= 1;
+#endif
 
         history.temp[hour] = temp;
 
@@ -123,15 +137,23 @@ void Zone::update(int hour, int minute, int deltams, int refLevel)
 
             if (temp < tempTarget - lowTempThreshold)
             {
-                display->sendIndexValue('r',"",config.heaterRelay, 1);
-            } else if (temp > tempTarget)
+                setRelay(config.heaterRelay, HIGH);
+                heating = true;
+            }
+            else if (temp > tempTarget)
             {
-                display->sendIndexValue('r',"",config.heaterRelay, 0);
+                setRelay(config.heaterRelay, LOW);
+                heating = false;
             }
         }
-
+#ifndef RAIN_MOCK
         humidity = dht.getHumidity();
-
+#else
+        if (raining)
+            humidity += 1;
+        else if (humidity > 15)
+            humidity -= 1;
+#endif
         history.humidity[hour] = humidity;
 
         if (history.minHumidity == 0 || humidity < history.minHumidity)
@@ -144,10 +166,13 @@ void Zone::update(int hour, int minute, int deltams, int refLevel)
         {
             if (humidity < config.humidityTarget - lowHumidityThreshold)
             {
-                display->sendIndexValue('r',"",config.rainRelay, 1);
-            } else if (humidity > config.humidityTarget)
+                setRelay(config.rainRelay, HIGH);
+                raining = true;
+            }
+            else if (humidity > config.humidityTarget)
             {
-                display->sendIndexValue('r',"",config.rainRelay, 0);
+                setRelay(config.rainRelay, LOW);
+                raining = false;
             }
         }
     }
@@ -155,7 +180,7 @@ void Zone::update(int hour, int minute, int deltams, int refLevel)
     if (uvEnabled && config.uvPin > 0)
     {
         uvi = readUVI(config.uvPin, refLevel);
-        
+
         history.uvi[hour] = uvi;
 
         if (history.maxUVI == 0 || uvi > history.maxUVI)
@@ -163,17 +188,17 @@ void Zone::update(int hour, int minute, int deltams, int refLevel)
     }
 }
 
-ZoneHistory Zone::getHistory() 
+ZoneHistory Zone::getHistory()
 {
     return history;
 }
 
-ZoneConfig Zone::getConfig() 
+ZoneConfig Zone::getConfig()
 {
     return config;
 }
 
-int Zone::getTemp() 
+int Zone::getTemp()
 {
     return temp;
 }
@@ -193,15 +218,21 @@ int Zone::getUVIS()
     return uvis;
 }
 
-void Zone::setDisplay(NextionDisplay* newDisplay)
+void Zone::setDisplay(NextionDisplay *newDisplay)
 {
     display = newDisplay;
 }
 
 void Zone::updateDisplayOverview()
 {
-    display->sendIndexValue('s',"Temp", zoneIndex, temp);
-    display->sendIndexValue('s',"Humidity", zoneIndex, humidity);
-    display->sendIndexValue('s',"UV", zoneIndex, uvi);
-    display->sendIndexValue('s',"UVs", zoneIndex, uvi);
+    display->sendIndexValue('s', "Temp", zoneIndex, temp);
+    display->sendIndexValue('s', "Humidity", zoneIndex, humidity);
+    display->sendIndexValue('s', "UV", zoneIndex, uvi);
+    display->sendIndexValue('s', "UVs", zoneIndex, uvi);
+
+    if (config.heaterRelay >= 0)
+        display->sendIndexValue('r', "", config.heaterRelay, relayState[config.heaterRelay]);
+
+    if (config.rainRelay >= 0)
+        display->sendIndexValue('r', "", config.rainRelay, relayState[config.rainRelay]);
 }
