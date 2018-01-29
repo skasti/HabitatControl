@@ -5,6 +5,12 @@
 #include "nextionDisplay.h"
 #include <inttypes.h>
 
+const int32_t heatTimeLimit = 10*60*1000; //10 Minutes
+const uint16_t rainTimeLimit = 5000; // 5 Seconds
+
+const int32_t heatCooldownTime = 5*60*1000; //5 minutes
+const int32_t rainCooldownTime = 60*60*1000; //1 Hour
+
 struct ZoneHistory
 {
     uint8_t temp[24];
@@ -43,6 +49,8 @@ class Zone
     bool uvEnabled = false;
 
     bool heating, raining;
+    int32_t heatTime, rainTime;
+    int32_t heatCooldown, rainCooldown;
 
     ZoneHistory history;
     ZoneConfig config;

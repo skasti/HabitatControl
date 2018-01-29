@@ -112,6 +112,38 @@ void Zone::saveToEEPROM()
 
 void Zone::update(int hour, int minute, int deltams, int refLevel)
 {
+    if (heating)
+    {
+        heatTime += deltams;
+
+        if (heatTime > heatTimeLimit)
+        {
+            heating = false;
+            heatTime = 0;
+            heatCooldown = heatCooldownTime;
+        }
+    }
+    else if (heatCooldown > 0) 
+    {
+        heatCooldown -= deltams;
+    }
+
+    if (raining)
+    {
+        rainTime += deltams;
+
+        if (rainTime > rainTimeLimit)
+        {
+            raining = false;
+            rainTime = 0;
+            rainCooldown = rainCooldownTime;
+        }
+    }
+    else if (rainCooldown > 0) 
+    {
+        rainCooldown -= deltams;
+    }
+
     if (config.dhtPin > 0)
     {
 #ifndef HEATER_MOCK
@@ -119,7 +151,7 @@ void Zone::update(int hour, int minute, int deltams, int refLevel)
 #else
         if (heating)
             temp += 1;
-        else if (temp > 15)
+        else if (temp > 0)
             temp -= 1;
 #endif
 
@@ -137,8 +169,12 @@ void Zone::update(int hour, int minute, int deltams, int refLevel)
 
             if (temp < tempTarget - lowTempThreshold)
             {
-                setRelay(config.heaterRelay, HIGH);
-                heating = true;
+                if (heatCooldown <= 0)
+                {
+                    setRelay(config.heaterRelay, HIGH);
+                    heating = true;
+                    heatTime = 0;
+                }
             }
             else if (temp > tempTarget)
             {
@@ -166,8 +202,12 @@ void Zone::update(int hour, int minute, int deltams, int refLevel)
         {
             if (humidity < config.humidityTarget - lowHumidityThreshold)
             {
-                setRelay(config.rainRelay, HIGH);
-                raining = true;
+                if (rainCooldown <= 0)
+                {
+                    setRelay(config.rainRelay, HIGH);
+                    raining = true;
+                    rainTime = 0;
+                }
             }
             else if (humidity > config.humidityTarget)
             {

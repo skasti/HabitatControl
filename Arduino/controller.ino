@@ -34,8 +34,18 @@ Zone zone[3] = {
     zone3};
 
 bool isOverview = false;
+uint8_t updateDisplayCounter = 0;
 
 NextionDisplay display;
+
+uint8_t hour = 0;
+uint8_t minute = 0;
+
+long nextMinute = 60000;
+uint8_t nextTimePoll = 0;
+uint8_t prevHour = 0;
+
+const uint8_t timePollInterval = 6; //6 Hours
 
 void setup()
 {
@@ -104,21 +114,56 @@ void loop()
     }
   }
 
+  if (hour >= nextTimePoll) {
+    hour = display.getIntValue("overview.hour");
+    minute = display.getIntValue("overview.minute");
+    nextMinute = time + 60000;
+    nextTimePoll = hour + timePollInterval;
+
+    if (nextTimePoll >= 24)
+      nextTimePoll -= 24;
+  }
+
+  if (time > nextMinute) {
+    minute++;
+
+    if (minute >= 60)
+    {
+      minute -= 60;
+      hour++;
+    }
+    
+    if (hour >= 24)
+      hour -= 24;
+
+    nextMinute = time + 60000;
+  }
+
   if (time < sampleTime)
     return;
 
-  sampleTime = time + 5000;
+  sampleTime = time + 1000;
 
   int deltaTime = time - prevTime;
   prevTime = time;
+
+  updateDisplayCounter++;
 
   int refLevel = averageAnalogRead(A0);
 
   for (int i = 0; i < 3; i++)
   {
-    zone[i].update(0, 0, deltaTime, refLevel);
+    zone[i].update(hour, minute, deltaTime, refLevel);
 
-    if (isOverview)
+    if (hour != prevHour) {
+      zone[i].saveToEEPROM();
+      prevHour = hour;
+    }
+
+    if (isOverview && updateDisplayCounter > 3)
       zone[i].updateDisplayOverview();
   }
+
+  if (updateDisplayCounter > 3)
+    updateDisplayCounter = 0;
 }
