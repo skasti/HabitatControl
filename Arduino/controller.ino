@@ -71,11 +71,26 @@ void loop()
   if (display.hasCommand())
   {
     String command = display.getCommand();
-    if (command == "GetZoneTemps")
+    if (command == "GetZoneDetails")
     {
       isOverview = false;
 
-      int zoneIndex = display.getIntValue("temps.currentZone");
+      int zoneIndex = display.getIntValue("global.currentZone");
+
+      if (zoneIndex >= 0)
+      {
+        ZoneConfig config = zone[zoneIndex].getConfig();
+        display.sendValue("temp", zone[zoneIndex].getTemp());
+        display.sendValue("humidity", zone[zoneIndex].getHumidity());
+        display.sendValue("tempTarget", config.tempTargets[hour]);
+        display.sendValue("humidityTarget", config.humidityTarget);
+      }
+    }
+    else if (command == "GetTempTargets")
+    {
+      isOverview = false;
+
+      int zoneIndex = display.getIntValue("global.currentZone");
 
       if (zoneIndex >= 0)
       {
@@ -87,9 +102,25 @@ void loop()
         }
       }
     }
-    else if (command == "SaveZoneTemps")
+    else if (command == "GetTempHistory")
     {
-      int zoneIndex = display.getIntValue("temps.currentZone");
+      isOverview = false;
+
+      int zoneIndex = display.getIntValue("global.currentZone");
+
+      if (zoneIndex >= 0)
+      {
+        ZoneHistory config = zone[zoneIndex].getHistory();
+
+        for (int i = 0; i < 24; i++)
+        {
+          display.sendIndexValue('h', "", i, config.temp[i]);
+        }
+      }
+    }
+    else if (command == "SaveTempTargets")
+    {
+      int zoneIndex = display.getIntValue("global.currentZone");
 
       if (zoneIndex >= 0)
       {
