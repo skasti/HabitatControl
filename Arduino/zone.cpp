@@ -276,3 +276,27 @@ void Zone::updateDisplayOverview()
     if (config.rainRelay >= 0)
         display->sendIndexValue('r', "", config.rainRelay, relayState[config.rainRelay]);
 }
+
+void Zone::clearTempHistory()
+{
+    for (int i = 0; i < 24; i++)
+        history.temp[i] = 0;
+
+    saveToEEPROM();
+}
+
+void Zone::clearHumidityHistory()
+{
+    for (int i = 0; i < 24; i++)
+        history.humidity[i] = 0;
+
+    saveToEEPROM();
+}
+
+void Zone::clearUVIHistory()
+{
+    for (int i = 0; i < 24; i++)
+        history.uvi[i] = 0;
+
+    saveToEEPROM();
+}

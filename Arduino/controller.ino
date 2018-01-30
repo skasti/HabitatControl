@@ -71,6 +71,20 @@ void loop()
   if (display.hasCommand())
   {
     String command = display.getCommand();
+    if (command == "UpdateTime")
+    {
+      hour = display.getIntValue("overview.hour");
+      minute = display.getIntValue("overview.minute");
+      nextMinute = time + 60000;
+      nextTimePoll = hour + timePollInterval;
+
+      if (nextTimePoll >= 24)
+        nextTimePoll -= 24;
+
+      display.sendValue("CurrentHour",hour);
+      display.sendValue("CurrentMinute",minute);
+      display.sendValue("NextTimePoll",nextTimePoll);
+    }
     if (command == "GetZoneDetails")
     {
       isOverview = false;
@@ -110,12 +124,63 @@ void loop()
 
       if (zoneIndex >= 0)
       {
-        ZoneHistory config = zone[zoneIndex].getHistory();
+        ZoneHistory history = zone[zoneIndex].getHistory();
 
         for (int i = 0; i < 24; i++)
         {
-          display.sendIndexValue('h', "", i, config.temp[i]);
+          display.sendIndexValue('h', "", i, history.temp[i]);
         }
+      }
+    }
+    else if (command == "GetTempGraph")
+    {
+      isOverview = false;
+
+      int zoneIndex = display.getIntValue("global.currentZone");
+
+      if (zoneIndex >= 0)
+      {
+        ZoneHistory history = zone[zoneIndex].getHistory();
+
+        for (int i = 23; i >= 0; i--)
+        {
+          //One datapoint is only 1px, so we need to send a few to get a proper graph
+          for (int j = 0; j <= 14; j++)
+            display.sendWaveFormValue(1,0, history.temp[i] * 4);
+        }
+      }
+    }
+    else if (command == "ClearTempHistory")
+    {
+      isOverview = false;
+
+      int zoneIndex = display.getIntValue("global.currentZone");
+
+      if (zoneIndex >= 0)
+      {
+        zone[zoneIndex].clearTempHistory();
+      }
+    }
+    else if (command == "ClearHumidityHistory")
+    {
+      isOverview = false;
+
+      int zoneIndex = display.getIntValue("global.currentZone");
+
+      if (zoneIndex >= 0)
+      {
+        zone[zoneIndex].clearHumidityHistory();
+      }
+    }
+    else if (command == "ClearUVIHistory")
+    {
+      isOverview = false;
+
+      int zoneIndex = display.getIntValue("global.currentZone");
+
+      if (zoneIndex >= 0)
+      {
+        zone[zoneIndex].clearUVIHistory();
       }
     }
     else if (command == "SaveTempTargets")
@@ -145,7 +210,7 @@ void loop()
     }
   }
 
-  if (hour >= nextTimePoll) {
+  if (hour == nextTimePoll) {
     hour = display.getIntValue("overview.hour");
     minute = display.getIntValue("overview.minute");
     nextMinute = time + 60000;

@@ -91,6 +91,10 @@ class Zone
 
     void setDisplay(NextionDisplay *newDisplay);
     void updateDisplayOverview();
+    
+    void clearTempHistory();
+    void clearHumidityHistory();
+    void clearUVIHistory();
 };
 
 #endif

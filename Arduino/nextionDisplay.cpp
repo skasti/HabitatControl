@@ -43,6 +43,17 @@ void NextionDisplay::sendValue(char componentName[], int value)
     sendEOL();
 }
 
+void NextionDisplay::sendWaveFormValue(int objId, int channel, int value)
+{
+    Nextion.print("add ");
+    Nextion.print(objId);
+    Nextion.print(",");
+    Nextion.print(channel);
+    Nextion.print(",");
+    Nextion.print(value);
+    sendEOL();
+}
+
 void NextionDisplay::sendIndexValue(char prefix, char componentName[], int index, char value[])
 {
     Nextion.print(prefix);

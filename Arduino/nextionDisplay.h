@@ -25,6 +25,7 @@ class NextionDisplay {
         void sendCommand(char command[]);
         void sendValue(char componentName[], char value[]);
         void sendValue(char componentName[], int value);
+        void sendWaveFormValue(int objId, int channel, int value);
         void sendIndexValue(char prefix, char componentName[], int index, char value[]);
         void sendIndexValue(char prefix, char componentName[], int index, int value);
         int getIntValue(char componentName[]);
