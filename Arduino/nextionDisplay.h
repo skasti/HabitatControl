@@ -28,10 +28,14 @@ class NextionDisplay {
         void sendWaveFormValue(int objId, int channel, int value);
         void sendIndexValue(char prefix, char componentName[], int index, char value[]);
         void sendIndexValue(char prefix, char componentName[], int index, int value);
+        void sendIndexValue(char prefix, int index, char value[]);
+        void sendIndexValue(char prefix, int index, int value);
         int getIntValue(char componentName[]);
         String getStringValue(char componentName[]);
         int getIntValue(char prefix, char componentName[], int index);
         String getStringValue(char prefix, char componentName[], int index);
+        int getIntValue(char prefix, int index);
+        String getStringValue(char prefix, int index);        
         bool hasCommand();
         String getCommand();
         int readLine();

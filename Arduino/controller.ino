@@ -4,22 +4,17 @@
 #include "nextionDisplay.h"
 #include "relays.h"
 
-DHT dhts[3];
-
 int uvs[] = {
-    A3, A2, A1};
+  A3, A2, A1
+};
 
 int heaters[] = {
-    0, -1, 1};
+  0, -1, 1
+};
 
 int rain[] = {
-    -1, -1, 2};
-
-bool uvEnabled[] = {
-    true, true, true};
-
-byte eol[] = {
-    0xFF, 0xFF, 0xFF};
+  -1, -1, 2
+};
 
 long sampleTime = 10000;
 long prevTime = 0;
@@ -29,14 +24,16 @@ Zone zone2(150, 1);
 Zone zone3(300, 2);
 
 Zone zone[3] = {
-    zone1,
-    zone2,
-    zone3};
+  zone1,
+  zone2,
+  zone3
+};
 
 bool isOverview = false;
-uint8_t updateDisplayCounter = 0;
 
 NextionDisplay display;
+
+long time;
 
 uint8_t hour = 0;
 uint8_t minute = 0;
@@ -46,6 +43,10 @@ uint8_t nextTimePoll = 0;
 uint8_t prevHour = 0;
 
 const uint8_t timePollInterval = 6; //6 Hours
+
+uint8_t lightOn = 10;
+uint8_t lightOff = 22;
+int lightRelay = 3;
 
 void setup()
 {
@@ -64,14 +65,13 @@ void setup()
   }
 }
 
-void loop()
+void getDisplayCommand()
 {
-  long time = millis();
-
   if (display.hasCommand())
   {
     String command = display.getCommand();
-    if (command == "UpdateTime")
+
+    if (command == "T")
     {
       hour = display.getIntValue("overview.hour");
       minute = display.getIntValue("overview.minute");
@@ -85,11 +85,12 @@ void loop()
       display.sendValue("CurrentMinute",minute);
       display.sendValue("NextTimePoll",nextTimePoll);
     }
-    if (command == "GetZoneDetails")
+
+    if (command == "Z")
     {
       isOverview = false;
 
-      int zoneIndex = display.getIntValue("global.currentZone");
+      int8_t zoneIndex = display.getIntValue("global.currentZone");
 
       if (zoneIndex >= 0)
       {
@@ -98,102 +99,90 @@ void loop()
         display.sendValue("humidity", zone[zoneIndex].getHumidity());
         display.sendValue("tempTarget", config.tempTargets[hour]);
         display.sendValue("humidityTarget", config.humidityTarget);
+        display.sendValue("uvi", zone[zoneIndex].getUVI());
+        display.sendValue("uvis", zone[zoneIndex].getUVIS());
       }
     }
-    else if (command == "GetTempTargets")
+    else if (command == "TT")
     {
-      isOverview = false;
-
-      int zoneIndex = display.getIntValue("global.currentZone");
+      int8_t zoneIndex = display.getIntValue("global.currentZone");
 
       if (zoneIndex >= 0)
       {
         ZoneConfig config = zone[zoneIndex].getConfig();
 
-        for (int i = 0; i < 24; i++)
+        for (uint8_t i = 0; i < 24; i++)
         {
-          display.sendIndexValue('h', "", i, config.tempTargets[i]);
+          display.sendIndexValue('h', i, config.tempTargets[i]);
         }
       }
     }
-    else if (command == "GetTempHistory")
+    else if (command == "HT")
     {
-      isOverview = false;
+      int8_t zoneIndex = display.getIntValue("global.currentZone");
 
-      int zoneIndex = display.getIntValue("global.currentZone");
+      if (zoneIndex >= 0)
+      {
+        ZoneConfig config = zone[zoneIndex].getConfig();
+        display.sendValue("target", config.humidityTarget);
+        display.sendValue("display", config.humidityTarget);
+      }
+    }
+    else if (command == "GG")
+    {
+      int8_t zoneIndex = display.getIntValue("global.currentZone");
+      int8_t currentAttribute = display.getIntValue("global.currentAttr");
 
       if (zoneIndex >= 0)
       {
         ZoneHistory history = zone[zoneIndex].getHistory();
 
-        for (int i = 0; i < 24; i++)
-        {
-          display.sendIndexValue('h', "", i, history.temp[i]);
-        }
-      }
-    }
-    else if (command == "GetTempGraph")
-    {
-      isOverview = false;
-
-      int zoneIndex = display.getIntValue("global.currentZone");
-
-      if (zoneIndex >= 0)
-      {
-        ZoneHistory history = zone[zoneIndex].getHistory();
-
-        for (int i = 23; i >= 0; i--)
+        for (int8_t i = 23; i >= 0; i--)
         {
           //One datapoint is only 1px, so we need to send a few to get a proper graph
-          for (int j = 0; j <= 14; j++)
-            display.sendWaveFormValue(1,0, history.temp[i] * 4);
+          for (uint8_t j = 0; j <= 14; j++)
+          {
+            if (currentAttribute == 0)
+              display.sendWaveFormValue(1,0, history.temp[i] * 4);
+            else if (currentAttribute == 1)
+              display.sendWaveFormValue(1,0, history.humidity[i] * 2);
+            else if (currentAttribute == 2)
+              display.sendWaveFormValue(1,0, history.uvi[i] * 10);
+
+            if (i < hour)
+              display.sendWaveFormValue(1,1, 0);
+            else
+              display.sendWaveFormValue(1,1, 160);
+          }
         }
       }
     }
-    else if (command == "ClearTempHistory")
+    else if (command == "CG")
     {
-      isOverview = false;
-
-      int zoneIndex = display.getIntValue("global.currentZone");
+      int8_t zoneIndex = display.getIntValue("global.currentZone");
+      int8_t currentAttribute = display.getIntValue("global.currentAttr");
 
       if (zoneIndex >= 0)
       {
-        zone[zoneIndex].clearTempHistory();
+        if (currentAttribute == 0)
+          zone[zoneIndex].clearTempHistory();
+        else if (currentAttribute == 1)
+          zone[zoneIndex].clearHumidityHistory();
+        else if (currentAttribute == 2)
+          zone[zoneIndex].clearUVIHistory();
       }
     }
-    else if (command == "ClearHumidityHistory")
+    else if (command == "STT")
     {
-      isOverview = false;
-
-      int zoneIndex = display.getIntValue("global.currentZone");
-
-      if (zoneIndex >= 0)
-      {
-        zone[zoneIndex].clearHumidityHistory();
-      }
-    }
-    else if (command == "ClearUVIHistory")
-    {
-      isOverview = false;
-
-      int zoneIndex = display.getIntValue("global.currentZone");
-
-      if (zoneIndex >= 0)
-      {
-        zone[zoneIndex].clearUVIHistory();
-      }
-    }
-    else if (command == "SaveTempTargets")
-    {
-      int zoneIndex = display.getIntValue("global.currentZone");
+      int8_t zoneIndex = display.getIntValue("global.currentZone");
 
       if (zoneIndex >= 0)
       {
         ZoneConfig config = zone[zoneIndex].getConfig();
 
-        for (int i = 0; i < 24; i++)
+        for (int8_t i = 0; i < 24; i++)
         {
-          int newValue = display.getIntValue('h', "", i);
+          int8_t newValue = display.getIntValue('h', i);
 
           if (newValue >= 0)
             config.tempTargets[i] = newValue;
@@ -201,16 +190,47 @@ void loop()
 
         zone[zoneIndex].configureTargets(config.tempTargets, config.humidityTarget);
 
-        display.sendCommand("page overview");
+        display.sendCommand("page zoneDetails");
       }
     }
-    else if (command == "InitOverview")
+    else if (command == "SHT")
+    {
+      int8_t zoneIndex = display.getIntValue("global.currentZone");
+
+      if (zoneIndex >= 0)
+      {
+        ZoneConfig config = zone[zoneIndex].getConfig();
+
+        int8_t newValue = display.getIntValue("target");
+
+        if (newValue >= 0)
+          config.humidityTarget = newValue;
+
+        zone[zoneIndex].configureTargets(config.tempTargets, config.humidityTarget);
+
+        display.sendCommand("page zoneDetails");
+      }
+    }
+    else if (command == "OV")
     {
       isOverview = true;
+
+      for (uint8_t i = 0; i < 4; i++)
+      {
+        display.sendIndexValue(relayPrefix,i,relayState[i]);
+      }
     }
   }
+}
 
-  if (hour == nextTimePoll) {
+bool timeIsInvalid()
+{
+  return (hour > 23) || (minute >= 60);
+}
+
+void updateTime()
+{
+  if (hour == nextTimePoll || timeIsInvalid()) {
     hour = display.getIntValue("overview.hour");
     minute = display.getIntValue("overview.minute");
     nextMinute = time + 60000;
@@ -234,16 +254,31 @@ void loop()
 
     nextMinute = time + 60000;
   }
+}
+
+void loop()
+{
+  time = millis();
+
+  getDisplayCommand();
+
+  updateTime();
 
   if (time < sampleTime)
     return;
+
+  if (hour < lightOff && hour >= lightOn)
+  {
+    if (setRelay(lightRelay, HIGH))
+      display.sendIndexValue(relayPrefix,lightRelay,HIGH);
+  }
+  else if (setRelay(lightRelay, LOW))
+      display.sendIndexValue(relayPrefix,lightRelay,LOW);
 
   sampleTime = time + 1000;
 
   int deltaTime = time - prevTime;
   prevTime = time;
-
-  updateDisplayCounter++;
 
   int refLevel = averageAnalogRead(A0);
 
@@ -256,10 +291,7 @@ void loop()
       prevHour = hour;
     }
 
-    if (isOverview && updateDisplayCounter > 3)
+    if (isOverview)
       zone[i].updateDisplayOverview();
   }
-
-  if (updateDisplayCounter > 3)
-    updateDisplayCounter = 0;
 }

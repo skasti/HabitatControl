@@ -1,5 +1,5 @@
-#define HEATER_MOCK
-#define RAIN_MOCK
+//#define HEATER_MOCK
+//#define RAIN_MOCK
 
 #include "zone.h"
 #include <EEPROM.h>
@@ -94,7 +94,7 @@ void Zone::init()
         pinMode(config.uvPin, INPUT);
         digitalWrite(config.uvPin, HIGH);
 
-        if (analogRead(config.uvPin) < 1000)
+        if (analogRead(config.uvPin) < 900)
         {
             uvEnabled = true;
             digitalWrite(config.uvPin, LOW);
@@ -146,73 +146,79 @@ void Zone::update(int hour, int minute, int deltams, int refLevel)
 
     if (config.dhtPin > 0)
     {
-#ifndef HEATER_MOCK
-        temp = dht.getTemperature();
-#else
-        if (heating)
-            temp += 1;
-        else if (temp > 0)
-            temp -= 1;
-#endif
+        int newTemp = dht.getTemperature();
+        int newHumidity = dht.getHumidity();
 
-        history.temp[hour] = temp;
-
-        if (history.minTemp == 0 || temp < history.minTemp)
-            history.minTemp = temp;
-
-        if (history.maxTemp == 0 || temp > history.maxTemp)
-            history.maxTemp = temp;
-
-        if (config.heaterRelay >= 0)
+        if (newTemp > 0 && newHumidity > 0)
         {
-            uint8_t tempTarget = config.tempTargets[hour];
+    #ifndef HEATER_MOCK
+            temp = newTemp;
+    #else
+            if (heating)
+                temp += 1;
+            else if (temp > 0)
+                temp -= 1;
+    #endif
 
-            if (temp < tempTarget - lowTempThreshold)
+            history.temp[hour] = temp;
+
+            if (history.minTemp == 0 || temp < history.minTemp)
+                history.minTemp = temp;
+
+            if (history.maxTemp == 0 || temp > history.maxTemp)
+                history.maxTemp = temp;
+
+            if (config.heaterRelay >= 0)
             {
-                if (heatCooldown <= 0)
+                uint8_t tempTarget = config.tempTargets[hour];
+
+                if (temp < tempTarget - lowTempThreshold)
                 {
-                    setRelay(config.heaterRelay, HIGH);
-                    heating = true;
-                    heatTime = 0;
+                    if (heatCooldown <= 0)
+                    {
+                        setRelay(config.heaterRelay, HIGH);
+                        heating = true;
+                        heatTime = 0;
+                    }
+                }
+                else if (temp > tempTarget)
+                {
+                    setRelay(config.heaterRelay, LOW);
+                    heating = false;
                 }
             }
-            else if (temp > tempTarget)
+    #ifndef RAIN_MOCK
+            humidity = newHumidity;
+    #else
+            if (raining)
+                humidity += 1;
+            else if (humidity > 15)
+                humidity -= 1;
+    #endif
+            history.humidity[hour] = humidity;
+
+            if (history.minHumidity == 0 || humidity < history.minHumidity)
+                history.minHumidity = humidity;
+
+            if (history.maxHumidity == 0 || humidity > history.maxHumidity)
+                history.maxHumidity = humidity;
+
+            if (config.rainRelay >= 0)
             {
-                setRelay(config.heaterRelay, LOW);
-                heating = false;
-            }
-        }
-#ifndef RAIN_MOCK
-        humidity = dht.getHumidity();
-#else
-        if (raining)
-            humidity += 1;
-        else if (humidity > 15)
-            humidity -= 1;
-#endif
-        history.humidity[hour] = humidity;
-
-        if (history.minHumidity == 0 || humidity < history.minHumidity)
-            history.minHumidity = humidity;
-
-        if (history.maxHumidity == 0 || humidity > history.maxHumidity)
-            history.maxHumidity = humidity;
-
-        if (config.rainRelay >= 0)
-        {
-            if (humidity < config.humidityTarget - lowHumidityThreshold)
-            {
-                if (rainCooldown <= 0)
+                if (humidity < config.humidityTarget - lowHumidityThreshold)
                 {
-                    setRelay(config.rainRelay, HIGH);
-                    raining = true;
-                    rainTime = 0;
+                    if (rainCooldown <= 0)
+                    {
+                        setRelay(config.rainRelay, HIGH);
+                        raining = true;
+                        rainTime = 0;
+                    }
                 }
-            }
-            else if (humidity > config.humidityTarget)
-            {
-                setRelay(config.rainRelay, LOW);
-                raining = false;
+                else if (humidity > config.humidityTarget)
+                {
+                    setRelay(config.rainRelay, LOW);
+                    raining = false;
+                }
             }
         }
     }
@@ -220,6 +226,7 @@ void Zone::update(int hour, int minute, int deltams, int refLevel)
     if (uvEnabled && config.uvPin > 0)
     {
         uvi = readUVI(config.uvPin, refLevel);
+        uvis += ((uvi * deltams) / 1000);
 
         history.uvi[hour] = uvi;
 
@@ -271,10 +278,10 @@ void Zone::updateDisplayOverview()
     display->sendIndexValue('s', "UVs", zoneIndex, uvi);
 
     if (config.heaterRelay >= 0)
-        display->sendIndexValue('r', "", config.heaterRelay, relayState[config.heaterRelay]);
+        display->sendIndexValue(relayPrefix, config.heaterRelay, relayState[config.heaterRelay]);
 
     if (config.rainRelay >= 0)
-        display->sendIndexValue('r', "", config.rainRelay, relayState[config.rainRelay]);
+        display->sendIndexValue(relayPrefix, config.rainRelay, relayState[config.rainRelay]);
 }
 
 void Zone::clearTempHistory()

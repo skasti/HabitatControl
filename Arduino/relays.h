@@ -7,6 +7,8 @@
 #include "WProgram.h"
 #endif
 
+const PROGMEM char relayPrefix = 'r';
+
 const int numRelays = 4;
 const int relays[] = {
     2, 3, 4, 5};
