@@ -4,32 +4,28 @@
 #include "nextionDisplay.h"
 #include "relays.h"
 
-int uvs[] = {
+int8_t uvs[] = {
   A3, A2, A1
 };
 
-int heaters[] = {
-  0, -1, 1
+int8_t heaters[] = {
+  -1, 0, -1
 };
 
-int rain[] = {
-  -1, -1, 2
+int8_t rain[] = {
+  -1, -1, -1
 };
 
 long sampleTime = 10000;
 long prevTime = 0;
 
-Zone zone1(0, 0);
-Zone zone2(150, 1);
-Zone zone3(300, 2);
-
 Zone zone[3] = {
-  zone1,
-  zone2,
-  zone3
+  Zone(0,0),
+  Zone(200,1),
+  Zone(400,2)
 };
 
-bool isOverview = false;
+bool isOverview = true;
 
 NextionDisplay display;
 
@@ -46,7 +42,7 @@ const uint8_t timePollInterval = 6; //6 Hours
 
 uint8_t lightOn = 10;
 uint8_t lightOff = 22;
-int lightRelay = 3;
+int lightRelay = 2;
 
 void setup()
 {
@@ -73,8 +69,8 @@ void getDisplayCommand()
 
     if (command == "T")
     {
-      hour = display.getIntValue("overview.hour");
-      minute = display.getIntValue("overview.minute");
+      hour = display.getIntValue(F("overview.hour"));
+      minute = display.getIntValue(F("overview.minute"));
       nextMinute = time + 60000;
       nextTimePoll = hour + timePollInterval;
 
@@ -90,7 +86,7 @@ void getDisplayCommand()
     {
       isOverview = false;
 
-      int8_t zoneIndex = display.getIntValue("global.currentZone");
+      int8_t zoneIndex = display.getIntValue(F("global.currentZone"));
 
       if (zoneIndex >= 0)
       {
@@ -105,7 +101,7 @@ void getDisplayCommand()
     }
     else if (command == "TT")
     {
-      int8_t zoneIndex = display.getIntValue("global.currentZone");
+      int8_t zoneIndex = display.getIntValue(F("global.currentZone"));
 
       if (zoneIndex >= 0)
       {
@@ -119,7 +115,7 @@ void getDisplayCommand()
     }
     else if (command == "HT")
     {
-      int8_t zoneIndex = display.getIntValue("global.currentZone");
+      int8_t zoneIndex = display.getIntValue(F("global.currentZone"));
 
       if (zoneIndex >= 0)
       {
@@ -130,8 +126,8 @@ void getDisplayCommand()
     }
     else if (command == "GG")
     {
-      int8_t zoneIndex = display.getIntValue("global.currentZone");
-      int8_t currentAttribute = display.getIntValue("global.currentAttr");
+      int8_t zoneIndex = display.getIntValue(F("global.currentZone"));
+      int8_t currentAttribute = display.getIntValue(F("global.currentAttr"));
 
       if (zoneIndex >= 0)
       {
@@ -159,8 +155,8 @@ void getDisplayCommand()
     }
     else if (command == "CG")
     {
-      int8_t zoneIndex = display.getIntValue("global.currentZone");
-      int8_t currentAttribute = display.getIntValue("global.currentAttr");
+      int8_t zoneIndex = display.getIntValue(F("global.currentZone"));
+      int8_t currentAttribute = display.getIntValue(F("global.currentAttr"));
 
       if (zoneIndex >= 0)
       {
@@ -174,7 +170,7 @@ void getDisplayCommand()
     }
     else if (command == "STT")
     {
-      int8_t zoneIndex = display.getIntValue("global.currentZone");
+      int8_t zoneIndex = display.getIntValue(F("global.currentZone"));
 
       if (zoneIndex >= 0)
       {
@@ -195,7 +191,7 @@ void getDisplayCommand()
     }
     else if (command == "SHT")
     {
-      int8_t zoneIndex = display.getIntValue("global.currentZone");
+      int8_t zoneIndex = display.getIntValue(F("global.currentZone"));
 
       if (zoneIndex >= 0)
       {
@@ -218,6 +214,17 @@ void getDisplayCommand()
       for (uint8_t i = 0; i < 4; i++)
       {
         display.sendIndexValue(relayPrefix,i,relayState[i]);
+      }
+    }
+    else if (command == "RZ")
+    {
+      for (int i = 0; i < 3; i++)
+      {
+        zone[i].setup(10 + i, uvs[i], heaters[i], rain[i]);
+        zone[i].clearHumidityHistory();
+        zone[i].clearTempHistory();
+        zone[i].clearUVIHistory();
+        zone[i].saveToEEPROM();
       }
     }
   }
@@ -280,7 +287,7 @@ void loop()
   int deltaTime = time - prevTime;
   prevTime = time;
 
-  int refLevel = averageAnalogRead(A0);
+  int refLevel = 1023;//averageAnalogRead(A0);
 
   for (int i = 0; i < 3; i++)
   {

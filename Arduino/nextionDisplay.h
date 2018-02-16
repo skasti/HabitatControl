@@ -30,6 +30,7 @@ class NextionDisplay {
         void sendIndexValue(char prefix, char componentName[], int index, int value);
         void sendIndexValue(char prefix, int index, char value[]);
         void sendIndexValue(char prefix, int index, int value);
+        int getIntValue(const __FlashStringHelper* componentName);
         int getIntValue(char componentName[]);
         String getStringValue(char componentName[]);
         int getIntValue(char prefix, char componentName[], int index);

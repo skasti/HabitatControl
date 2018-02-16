@@ -162,6 +162,40 @@ int NextionDisplay::getIntValue(char componentName[])
     return -1;
 }
 
+int NextionDisplay::getIntValue(const __FlashStringHelper* componentName)
+{
+    //Empty inbound buffer, as we dont want any other data than what we request
+    while(Nextion.available())
+    {
+        Nextion.read();
+    }
+
+    Nextion.print("get ");
+    Nextion.print(componentName);
+    Nextion.print(".val");
+    sendEOL();
+
+    int attempts = 0;
+
+    while (attempts < 500) {
+        if (readLine() == 4) {
+            ArrayToInteger converter;
+            
+            for (int i = 0; i < 4; i++)
+            {
+                converter.array[i] = buffer[1+i];
+            }
+
+            return converter.integer;
+            //return (int)buffer[1];
+        }
+        delay(2);
+        attempts++;
+    }
+
+    return -1;
+}
+
 int NextionDisplay::getIntValue(char prefix, char componentName[], int index)
 {
     //Empty inbound buffer, as we dont want any other data than what we request
