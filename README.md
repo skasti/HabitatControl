@@ -1,4 +1,7 @@
 # HabitatControl
+
+![Habitat](img/setup.jpg)
+
 An open source arduino-controlled habitat controller capable of reading temperature, 
 humidity and uv-intensity from 3 zones, controlling lighting, heating and rain systems with 4 relays.
 
