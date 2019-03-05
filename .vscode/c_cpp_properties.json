@@ -37,6 +37,8 @@
         {
             "name": "Win32",
             "includePath": [
+                "C:\\Program Files (x86)\\Arduino\\tools\\**",
+                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\**",
                 "c:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/include"
             ],
             "browse": {
@@ -47,7 +49,10 @@
                     "${workspaceRoot}"
                 ]
             },
-            "intelliSenseMode": "msvc-x64"
+            "intelliSenseMode": "msvc-x64",
+            "forcedInclude": [
+                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\cores\\arduino\\Arduino.h"
+            ]
         },
         {
             "name": "Arduino",
@@ -65,5 +70,5 @@
             "intelliSenseMode": "msvc-x64"
         }
     ],
-    "version": 3
+    "version": 4
 }

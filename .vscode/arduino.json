@@ -1,0 +1,6 @@
+{
+    "sketch": "Arduino\\controller.ino",
+    "port": "COM3",
+    "board": "arduino:avr:nano",
+    "configuration": "cpu=atmega328old"
+}
