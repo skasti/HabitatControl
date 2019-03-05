@@ -12,6 +12,9 @@
 #include "WProgram.h"
 #endif
 
+// Uncomment this to log to serial1
+//#define DEBUG true
+
 Zone::Zone(int eepromLocation, int zoneIndex)
 {
     this->eepromLocation = eepromLocation;
@@ -110,39 +113,11 @@ void Zone::saveToEEPROM()
     EEPROM.update(eepromLocation, 128);
 }
 
-void Zone::update(int hour, int minute, int deltams, int refLevel)
+void Zone::updateSensors(int hour, int minute, int32_t deltams, int refLevel)
 {
-    if (heating)
-    {
-        heatTime += deltams;
-
-        if (heatTime > heatTimeLimit)
-        {
-            heating = false;
-            heatTime = 0;
-            heatCooldown = heatCooldownTime;
-        }
-    }
-    else if (heatCooldown > 0) 
-    {
-        heatCooldown -= deltams;
-    }
-
-    if (raining)
-    {
-        rainTime += deltams;
-
-        if (rainTime > rainTimeLimit)
-        {
-            raining = false;
-            rainTime = 0;
-            rainCooldown = rainCooldownTime;
-        }
-    }
-    else if (rainCooldown > 0) 
-    {
-        rainCooldown -= deltams;
-    }
+    #ifdef DEBUG
+    Serial.println("Updating sensors");
+    #endif
 
     if (config.dhtPin > 0)
     {
@@ -168,25 +143,6 @@ void Zone::update(int hour, int minute, int deltams, int refLevel)
             if (history.maxTemp == 0 || temp > history.maxTemp)
                 history.maxTemp = temp;
 
-            if (config.heaterRelay >= 0)
-            {
-                uint8_t tempTarget = config.tempTargets[hour];
-
-                if (temp < tempTarget - lowTempThreshold)
-                {
-                    if (heatCooldown <= 0)
-                    {
-                        setRelay(config.heaterRelay, HIGH);
-                        heating = true;
-                        heatTime = 0;
-                    }
-                }
-                else if (temp > tempTarget)
-                {
-                    setRelay(config.heaterRelay, LOW);
-                    heating = false;
-                }
-            }
     #ifndef RAIN_MOCK
             humidity = newHumidity;
     #else
@@ -202,24 +158,6 @@ void Zone::update(int hour, int minute, int deltams, int refLevel)
 
             if (history.maxHumidity == 0 || humidity > history.maxHumidity)
                 history.maxHumidity = humidity;
-
-            if (config.rainRelay >= 0)
-            {
-                if (humidity < config.humidityTarget - lowHumidityThreshold)
-                {
-                    if (rainCooldown <= 0)
-                    {
-                        setRelay(config.rainRelay, HIGH);
-                        raining = true;
-                        rainTime = 0;
-                    }
-                }
-                else if (humidity > config.humidityTarget)
-                {
-                    setRelay(config.rainRelay, LOW);
-                    raining = false;
-                }
-            }
         }
     }
 
@@ -232,6 +170,146 @@ void Zone::update(int hour, int minute, int deltams, int refLevel)
 
         if (history.maxUVI == 0 || uvi > history.maxUVI)
             history.maxUVI = uvi;
+    }
+}
+
+void Zone::stopHeating()
+{
+    setRelay(config.heaterRelay, LOW);
+    heating = false;
+    heatCooldown = heatCooldownTime;
+    #ifdef DEBUG
+    Serial.println("Stopped heating");
+    #endif
+}
+
+void Zone::startHeating()
+{
+    // Abort if no heater is configured
+    if (config.heaterRelay < 0)
+        return;
+
+    // Abort if already heating
+    if (heating)
+        return;
+    
+    // Abort if we have a cooldown
+    if (heatCooldown > 0)
+        return;
+
+    setRelay(config.heaterRelay, HIGH);
+    heating = true;
+    heatTime = 0;
+
+    #ifdef DEBUG
+    Serial.println("Started heating");
+    #endif
+}
+
+void Zone::stopRaining()
+{
+    setRelay(config.rainRelay, LOW);
+    raining = false;
+    rainCooldown = rainCooldownTime;
+
+    #ifdef DEBUG
+    Serial.println("Stopped raining");
+    #endif
+}
+
+void Zone::startRaining()
+{
+    // Abort if no rain-system is configured
+    if (config.rainRelay < 0)
+        return;
+
+    // Abort if already raining
+    if (raining)
+        return;
+    
+    // Abort if we have a cooldown
+    if (rainCooldown > 0)
+        return;
+
+    setRelay(config.rainRelay, HIGH);
+    raining = true;
+    rainTime = 0;
+
+    #ifdef DEBUG
+    Serial.println("Started raining");
+    #endif
+}
+
+void Zone::update(int hour, int minute, long time, int32_t deltams, int refLevel)
+{
+    uint8_t tempTarget = config.tempTargets[hour];
+
+    if (time >= nextSample) 
+    {
+        updateSensors(hour, minute, deltams, refLevel);
+        nextSample = time + sampleInterval;
+    }
+
+    if (heating)
+    {
+        heatTime += deltams;
+
+        if (heatTime > heatTimeLimit)
+        {
+            #ifdef DEBUG
+            Serial.println("Heater timelimit");
+            #endif
+            stopHeating();
+        }
+        else if (temp > tempTarget)
+        {
+            #ifdef DEBUG
+            Serial.println("Heater reached temp target");
+            #endif
+            stopHeating();
+        }
+    }
+    else if (heatCooldown > 0) 
+    {
+        heatCooldown -= deltams;
+    }
+
+    if (raining)
+    {
+        rainTime += deltams;
+
+        if (rainTime > rainTimeLimit)
+        {
+            #ifdef DEBUG
+            Serial.println("Rain system timelimit");
+            #endif
+            stopRaining();            
+            
+        }
+        else if (humidity > config.humidityTarget)
+        {
+            #ifdef DEBUG
+            Serial.println("Rain system reach humidity");
+            #endif
+            stopRaining();
+        }
+    }
+    else if (rainCooldown > 0) 
+    {
+        rainCooldown -= deltams;
+    }
+
+    if (temp > 0 && humidity > 0)
+    {
+        if (temp < tempTarget - lowTempThreshold)
+        {
+            startHeating();
+        }
+
+        if (humidity < config.humidityTarget - lowHumidityThreshold)
+        {
+            startRaining();
+        }
     }
 }
 

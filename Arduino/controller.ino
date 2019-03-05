@@ -4,19 +4,21 @@
 #include "nextionDisplay.h"
 #include "relays.h"
 
+//#define DEBUG true
+
 int8_t uvs[] = {
   A3, A2, A1
 };
 
 int8_t heaters[] = {
-  -1, 0, -1
+  -1, 1, -1
 };
 
 int8_t rain[] = {
-  -1, -1, -1
+  -1, 2, 3
 };
 
-long sampleTime = 10000;
+long sampleTime = 5000;
 long prevTime = 0;
 
 Zone zone[3] = {
@@ -40,13 +42,18 @@ uint8_t prevHour = 0;
 
 const uint8_t timePollInterval = 6; //6 Hours
 
-uint8_t lightOn = 10;
+uint8_t lightOn = 9;
 uint8_t lightOff = 22;
-int lightRelay = 2;
+int lightRelay = 0;
 
 void setup()
 {
   display.setup();
+  
+  #ifdef DEBUG
+  Serial.begin(9600);
+  Serial.println("STARTING");
+  #endif
 
   pinMode(A0, INPUT);
 
@@ -271,6 +278,19 @@ void loop()
 
   updateTime();
 
+  int deltaTime = time - prevTime;
+  prevTime = time;
+
+  int refLevel = 1023;//averageAnalogRead(A0);
+
+  for (int i = 0; i < 3; i++)
+  {
+    zone[i].update(hour, minute, time, deltaTime, refLevel);
+  }
+
+  if (deltaTime < 10)
+    delay(10);
+
   if (time < sampleTime)
     return;
 
@@ -284,15 +304,8 @@ void loop()
 
   sampleTime = time + 1000;
 
-  int deltaTime = time - prevTime;
-  prevTime = time;
-
-  int refLevel = 1023;//averageAnalogRead(A0);
-
   for (int i = 0; i < 3; i++)
   {
-    zone[i].update(hour, minute, deltaTime, refLevel);
-
     if (hour != prevHour) {
       zone[i].saveToEEPROM();
       prevHour = hour;
@@ -300,5 +313,5 @@ void loop()
 
     if (isOverview)
       zone[i].updateDisplayOverview();
-  }
+  }  
 }

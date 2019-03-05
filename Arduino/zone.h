@@ -5,11 +5,11 @@
 #include "nextionDisplay.h"
 #include <inttypes.h>
 
-const int32_t heatTimeLimit = 10*60*1000; //10 Minutes
+const int32_t heatTimeLimit = 3600000; //1 hour
 const uint16_t rainTimeLimit = 5000; // 5 Seconds
 
-const int32_t heatCooldownTime = 5*60*1000; //5 minutes
-const int32_t rainCooldownTime = 60*60*1000; //1 Hour
+const int32_t heatCooldownTime = 120000; //2 minutes
+const int32_t rainCooldownTime = 3600000; //1 Hour
 
 struct ZoneHistory
 {
@@ -38,6 +38,7 @@ struct ZoneConfig
 
 const uint8_t lowTempThreshold = 2;
 const uint8_t lowHumidityThreshold = 5;
+const uint16_t sampleInterval = 1000;
 
 class Zone
 {
@@ -48,9 +49,11 @@ class Zone
     uint16_t uvis = 0;
     bool uvEnabled = false;
 
-    bool heating, raining;
-    int32_t heatTime, rainTime;
-    int32_t heatCooldown, rainCooldown;
+    bool heating = false, raining = false;
+    int32_t heatTime = 0, rainTime = 0;
+    int32_t heatCooldown = 0, rainCooldown = 0;
+
+    long nextSample = 0;
 
     ZoneHistory history;
     ZoneConfig config;
@@ -67,7 +70,13 @@ class Zone
     int getTempHistoryLocation(int hour);
     int getHumidityHistoryLocation(int hour);
     int getUVISHistoryLocation(int hour);
+    void updateSensors(int hour, int minute, int32_t deltams, int refLevel);
     void init();
+
+    void stopHeating();
+    void startHeating();
+    void stopRaining();
+    void startRaining();
 
   public:
     Zone(int eepromLocation, int zoneIndex);
@@ -79,7 +88,7 @@ class Zone
     bool loadFromEEPROM();
     void saveToEEPROM();
 
-    void update(int hour, int minute, int deltams, int refLevel);
+    void update(int hour, int minute, long time, int32_t deltams, int refLevel);
 
     ZoneHistory getHistory();
     ZoneConfig getConfig();
